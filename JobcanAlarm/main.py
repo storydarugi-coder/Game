@@ -19,11 +19,22 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui.app import JobcanAlarmApp
 
 
+def _get_log_path() -> str:
+    """로그 파일 경로를 반환."""
+    appdata = os.environ.get("APPDATA", os.path.expanduser("~"))
+    log_dir = os.path.join(appdata, "JobcanAlarm")
+    os.makedirs(log_dir, exist_ok=True)
+    return os.path.join(log_dir, "jobcanalarm.log")
+
+
 def main():
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        handlers=[logging.StreamHandler()],
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(_get_log_path(), encoding="utf-8"),
+        ],
     )
     app = JobcanAlarmApp()
     app.mainloop()
