@@ -200,10 +200,9 @@ class JobcanAlarmApp(ctk.CTk):
         self.status_bar.configure(text="설정이 저장되었습니다.")
 
     def _apply_alarms(self):
-        """스케줄러에 현재 알림 설정을 반영하고 시작."""
-        self.scheduler.stop()
+        """스케줄러에 현재 알림 설정을 반영."""
+        self.scheduler.clear()
         self.scheduler.update_alarms(self.settings["alarms"])
-        self.scheduler.start()
 
     def _test_notification(self):
         """테스트 알림 발송."""
@@ -237,7 +236,8 @@ class JobcanAlarmApp(ctk.CTk):
             self._save_and_apply()
 
     def _update_status(self):
-        """1초마다 상태바의 다음 알림 정보를 갱신."""
+        """1초마다 스케줄을 확인하고 상태바를 갱신."""
+        self.scheduler.tick()
         info = self.scheduler.get_next_run_info()
         current_text = self.status_bar.cget("text")
         # 저장 메시지가 표시 중이면 3초 후 원래로 복귀
@@ -247,5 +247,5 @@ class JobcanAlarmApp(ctk.CTk):
 
     def _on_close(self):
         """앱 종료 시 스케줄러 정리."""
-        self.scheduler.stop()
+        self.scheduler.clear()
         self.destroy()
