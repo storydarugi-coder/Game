@@ -1,13 +1,17 @@
 """메인 윈도우 UI"""
 
+import logging
 import sys
 import os
+import threading
 import customtkinter as ctk
 
 from core.notifier import open_jobcan
 from core.settings import load_settings, save_settings
 from core.scheduler import AlarmScheduler
 from ui.widgets import AlarmRow
+
+logger = logging.getLogger(__name__)
 
 STARTUP_REGISTRY_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 STARTUP_APP_NAME = "JobcanAlarm"
@@ -53,6 +57,20 @@ def _set_autostart(enable: bool) -> None:
         pass
 
 
+def _create_tray_icon_image():
+    """pystray용 트레이 아이콘 이미지를 생성한다."""
+    from PIL import Image, ImageDraw
+
+    size = 64
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    # 파란 원 배경
+    draw.ellipse([4, 4, size - 4, size - 4], fill="#1E90FF")
+    # 흰색 J 글자
+    draw.text((22, 12), "J", fill="white")
+    return img
+
+
 class JobcanAlarmApp(ctk.CTk):
     """JobcanAlarm 메인 윈도우."""
 
@@ -70,11 +88,16 @@ class JobcanAlarmApp(ctk.CTk):
         self.settings = load_settings()
         self.scheduler = AlarmScheduler()
         self.alarm_rows: list[AlarmRow] = []
+        self._tray_icon = None
+        self._quitting = False
 
         self._build_ui()
         self._apply_alarms()
 
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+        # 시스템 트레이 아이콘 시작
+        self._start_tray_icon()
 
         # 상태바 업데이트 타이머
         self._update_status()
@@ -183,6 +206,51 @@ class JobcanAlarmApp(ctk.CTk):
         )
         self.status_bar.pack(fill="x", padx=20, pady=(2, 10))
 
+    # ── 시스템 트레이 ──
+
+    def _start_tray_icon(self):
+        """시스템 트레이 아이콘을 백그라운드 스레드에서 시작."""
+        try:
+            import pystray
+        except ImportError:
+            logger.warning("pystray 없음, 트레이 아이콘 비활성화")
+            return
+
+        image = _create_tray_icon_image()
+        menu = pystray.Menu(
+            pystray.MenuItem("설정 열기", self._tray_show_window, default=True),
+            pystray.MenuItem("Jobcan 열기", lambda: open_jobcan()),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("종료", self._tray_quit),
+        )
+        self._tray_icon = pystray.Icon("JobcanAlarm", image, "JobcanAlarm", menu)
+        tray_thread = threading.Thread(target=self._tray_icon.run, daemon=True)
+        tray_thread.start()
+
+    def _tray_show_window(self):
+        """트레이에서 설정 창을 다시 표시."""
+        self.after(0, self._show_window)
+
+    def _show_window(self):
+        """창을 복원하여 표시."""
+        self.deiconify()
+        self.lift()
+        self.focus_force()
+
+    def _tray_quit(self):
+        """트레이 메뉴에서 완전 종료."""
+        self._quitting = True
+        if self._tray_icon:
+            self._tray_icon.stop()
+        self.after(0, self._quit_app)
+
+    def _quit_app(self):
+        """앱 완전 종료."""
+        self.scheduler.clear()
+        self.destroy()
+
+    # ── 알림 관련 ──
+
     def _on_autostart_toggle(self):
         """윈도우 시작 시 자동 실행 토글."""
         _set_autostart(self.autostart_var.get())
@@ -240,12 +308,15 @@ class JobcanAlarmApp(ctk.CTk):
         self.scheduler.tick()
         info = self.scheduler.get_next_run_info()
         current_text = self.status_bar.cget("text")
-        # 저장 메시지가 표시 중이면 3초 후 원래로 복귀
+        # 저장 메시지가 표시 중이면 유지
         if "저장" not in current_text:
             self.status_bar.configure(text=info)
         self.after(1000, self._update_status)
 
     def _on_close(self):
-        """앱 종료 시 스케줄러 정리."""
-        self.scheduler.clear()
-        self.destroy()
+        """창 닫기 → 트레이로 최소화 (트레이 없으면 종료)."""
+        if self._tray_icon and not self._quitting:
+            self.withdraw()
+        else:
+            self.scheduler.clear()
+            self.destroy()
