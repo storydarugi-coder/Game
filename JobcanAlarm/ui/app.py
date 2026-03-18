@@ -86,7 +86,7 @@ class JobcanAlarmApp(ctk.CTk):
         ctk.set_default_color_theme("blue")
 
         self.settings = load_settings()
-        self.scheduler = AlarmScheduler()
+        self.scheduler = AlarmScheduler(on_alarm=self._show_alarm_popup)
         self.alarm_rows: list[AlarmRow] = []
         self._tray_icon = None
         self._quitting = False
@@ -277,6 +277,7 @@ class JobcanAlarmApp(ctk.CTk):
         from core.notifier import send_notification
 
         send_notification("JobcanAlarm 테스트", "알림이 정상적으로 작동합니다!")
+        self._show_alarm_popup("JobcanAlarm 테스트", "알림이 정상적으로 작동합니다!")
 
     def _add_alarm(self):
         """새 알림 항목을 추가."""
@@ -312,6 +313,62 @@ class JobcanAlarmApp(ctk.CTk):
         if "저장" not in current_text:
             self.status_bar.configure(text=info)
         self.after(1000, self._update_status)
+
+    def _show_alarm_popup(self, title: str, message: str):
+        """화면 정가운데에 큼직한 알림 팝업을 띄운다."""
+        popup = ctk.CTkToplevel(self)
+        popup.title("JobcanAlarm")
+        popup.attributes("-topmost", True)
+        popup.resizable(False, False)
+        popup.configure(fg_color="#1a1a2e")
+
+        # 팝업 크기
+        pw, ph = 460, 280
+
+        # 화면 정가운데 좌표 계산
+        screen_w = popup.winfo_screenwidth()
+        screen_h = popup.winfo_screenheight()
+        x = (screen_w - pw) // 2
+        y = (screen_h - ph) // 2
+        popup.geometry(f"{pw}x{ph}+{x}+{y}")
+
+        # 내용
+        ctk.CTkLabel(
+            popup, text=title,
+            font=("", 24, "bold"), text_color="#FF6B35",
+        ).pack(pady=(30, 10))
+
+        ctk.CTkLabel(
+            popup, text=message,
+            font=("", 16), text_color="white", wraplength=400,
+        ).pack(pady=(0, 20))
+
+        # 버튼 행
+        btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
+        btn_frame.pack(pady=(10, 20))
+
+        ctk.CTkButton(
+            btn_frame, text="Jobcan 열기",
+            command=lambda: [open_jobcan(), popup.destroy()],
+            width=150, height=40,
+            fg_color="#FF6B35", hover_color="#E55A2B",
+            font=("", 15, "bold"),
+        ).pack(side="left", padx=10)
+
+        ctk.CTkButton(
+            btn_frame, text="닫기",
+            command=popup.destroy,
+            width=120, height=40,
+            fg_color="gray40", hover_color="gray50",
+            font=("", 15),
+        ).pack(side="left", padx=10)
+
+        # 30초 후 자동 닫기
+        popup.after(30000, lambda: popup.destroy() if popup.winfo_exists() else None)
+
+        # 포커스
+        popup.lift()
+        popup.focus_force()
 
     def _on_close(self):
         """창 닫기 → 트레이로 최소화 (트레이 없으면 종료)."""

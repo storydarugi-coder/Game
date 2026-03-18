@@ -15,10 +15,11 @@ logger = logging.getLogger(__name__)
 class AlarmScheduler:
     """매 초 현재 시각과 알림 시각을 비교하여 알림을 발송하는 스케줄러."""
 
-    def __init__(self):
+    def __init__(self, on_alarm=None):
         self._alarms: list[dict] = []
         self._fired_today: set[str] = set()  # 오늘 이미 발송한 알림 ID
         self._last_date: str = ""  # 날짜 변경 감지용
+        self._on_alarm = on_alarm  # 콜백: on_alarm(title, message)
 
     def update_alarms(self, alarms: list[dict]) -> None:
         """알림 목록을 받아 스케줄을 재설정한다."""
@@ -54,6 +55,8 @@ class AlarmScheduler:
                 try:
                     logger.info("알림 발송 시도: %s - %s", title, message)
                     send_notification(title=title, message=message)
+                    if self._on_alarm:
+                        self._on_alarm(title, message)
                     logger.info("알림 발송 완료: %s", title)
                 except Exception:
                     logger.exception("알림 발송 중 오류 발생")
