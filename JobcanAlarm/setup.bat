@@ -26,7 +26,7 @@ echo Done!
 echo.
 
 echo [3/3] Building exe...
-pyinstaller build.spec --noconfirm
+python -m PyInstaller build.spec --noconfirm
 if errorlevel 1 (
     echo ERROR: Build failed
     pause
