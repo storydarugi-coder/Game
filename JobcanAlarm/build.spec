@@ -1,12 +1,17 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller spec 파일
-# 빌드: pyinstaller build.spec
+# PyInstaller spec file
+# Build: pyinstaller build.spec
+
+import os
+import customtkinter
+
+ctk_path = os.path.dirname(customtkinter.__file__)
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[(ctk_path, 'customtkinter')],
     hiddenimports=['winotify', 'schedule', 'customtkinter'],
     hookspath=[],
     hooksconfig={},
@@ -28,6 +33,6 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,  # GUI 앱이므로 콘솔 숨김
-    icon=None,      # 아이콘 있으면 'assets/icon.ico' 지정
+    console=True,
+    icon=None,
 )
