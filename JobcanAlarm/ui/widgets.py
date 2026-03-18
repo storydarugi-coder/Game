@@ -6,10 +6,11 @@ import customtkinter as ctk
 class AlarmRow(ctk.CTkFrame):
     """하나의 알림(출근/퇴근 등)을 표시·편집하는 행 위젯."""
 
-    def __init__(self, master, alarm_data: dict, on_change=None, **kwargs):
+    def __init__(self, master, alarm_data: dict, on_change=None, on_delete=None, **kwargs):
         super().__init__(master, **kwargs)
         self.alarm_data = alarm_data
         self.on_change = on_change
+        self.on_delete = on_delete
 
         self.configure(fg_color="transparent")
         self.columnconfigure(1, weight=1)
@@ -68,13 +69,26 @@ class AlarmRow(ctk.CTkFrame):
             font=("", 12),
             width=30,
         )
-        self.status_label.grid(row=0, column=3, padx=(0, 10), pady=8)
+        self.status_label.grid(row=0, column=3, padx=(0, 5), pady=8)
+
+        # 삭제 버튼
+        self.delete_btn = ctk.CTkButton(
+            self,
+            text="✕",
+            command=self._on_delete,
+            width=28,
+            height=28,
+            fg_color="#E74C3C",
+            hover_color="#C0392B",
+            font=("", 13),
+        )
+        self.delete_btn.grid(row=0, column=4, padx=(0, 10), pady=8)
 
         # 메시지 입력
         self.message_entry = ctk.CTkEntry(
             self, placeholder_text="알림 메시지", width=350
         )
-        self.message_entry.grid(row=1, column=0, columnspan=4, padx=10, pady=(0, 8), sticky="ew")
+        self.message_entry.grid(row=1, column=0, columnspan=5, padx=10, pady=(0, 8), sticky="ew")
         self.message_entry.insert(0, alarm_data.get("message", ""))
         self.message_entry.bind("<FocusOut>", lambda _: self._on_message_change())
 
@@ -88,6 +102,10 @@ class AlarmRow(ctk.CTkFrame):
         self.status_label.configure(text="ON" if self.enabled_var.get() else "OFF")
         if self.on_change:
             self.on_change()
+
+    def _on_delete(self):
+        if self.on_delete:
+            self.on_delete(self)
 
     def _on_message_change(self):
         self.alarm_data["message"] = self.message_entry.get()

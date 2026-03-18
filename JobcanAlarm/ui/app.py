@@ -117,6 +117,7 @@ class JobcanAlarmApp(ctk.CTk):
                 self.alarms_frame,
                 alarm_data,
                 on_change=self._on_alarm_changed,
+                on_delete=self._delete_alarm,
             )
             row.pack(fill="x", pady=5)
             self.alarm_rows.append(row)
@@ -220,11 +221,20 @@ class JobcanAlarmApp(ctk.CTk):
             "enabled": True,
         }
         row = AlarmRow(
-            self.alarms_frame, new_alarm, on_change=self._on_alarm_changed
+            self.alarms_frame, new_alarm,
+            on_change=self._on_alarm_changed,
+            on_delete=self._delete_alarm,
         )
         row.pack(fill="x", pady=5)
         self.alarm_rows.append(row)
         self._save_and_apply()
+
+    def _delete_alarm(self, row: AlarmRow):
+        """알림 항목을 삭제."""
+        if row in self.alarm_rows:
+            self.alarm_rows.remove(row)
+            row.destroy()
+            self._save_and_apply()
 
     def _update_status(self):
         """1초마다 상태바의 다음 알림 정보를 갱신."""
