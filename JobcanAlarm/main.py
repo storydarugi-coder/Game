@@ -3,6 +3,7 @@
 실행: python main.py
 """
 
+import logging
 import sys
 import os
 
@@ -19,6 +20,11 @@ from ui.app import JobcanAlarmApp
 
 
 def main():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=[logging.StreamHandler()],
+    )
     app = JobcanAlarmApp()
     app.mainloop()
 

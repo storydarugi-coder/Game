@@ -1,8 +1,11 @@
 """Windows 토스트 알림 모듈"""
 
+import logging
 import sys
 import subprocess
 import webbrowser
+
+logger = logging.getLogger(__name__)
 
 JOBCAN_URL = "https://id.jobcan.jp/users/sign_in"
 
@@ -29,7 +32,12 @@ def send_notification(title: str, message: str) -> None:
         toast.set_audio(audio.Default, loop=False)
         toast.add_actions(label="Jobcan 열기", launch=JOBCAN_URL)
         toast.show()
+        logger.info("winotify 알림 발송 성공: %s", title)
     except ImportError:
+        logger.warning("winotify 없음, PowerShell 폴백 사용")
+        _fallback_notification(title, message)
+    except Exception:
+        logger.exception("winotify 알림 발송 실패, PowerShell 폴백 사용")
         _fallback_notification(title, message)
 
 

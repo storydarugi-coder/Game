@@ -1,10 +1,13 @@
 """알림 스케줄 관리 모듈"""
 
+import logging
 import threading
 import time
 import schedule
 
 from core.notifier import send_notification
+
+logger = logging.getLogger(__name__)
 
 
 class AlarmScheduler:
@@ -28,8 +31,9 @@ class AlarmScheduler:
                 message = alarm.get("message", "Jobcan을 확인하세요!")
 
                 self._scheduler.every().day.at(alarm_time).do(
-                    send_notification, title=label, message=message
+                    self._safe_notify, title=label, message=message
                 )
+                logger.info("알림 등록: %s %s (%s)", label, alarm_time, message)
 
     def start(self) -> None:
         """백그라운드 스레드에서 스케줄러를 실행한다."""
@@ -48,11 +52,24 @@ class AlarmScheduler:
         with self._lock:
             self._scheduler.clear()
 
+    @staticmethod
+    def _safe_notify(title: str, message: str) -> None:
+        """예외를 잡아서 스케줄러 스레드가 죽지 않도록 알림을 발송."""
+        try:
+            logger.info("알림 발송 시도: %s - %s", title, message)
+            send_notification(title=title, message=message)
+            logger.info("알림 발송 완료: %s", title)
+        except Exception:
+            logger.exception("알림 발송 중 오류 발생")
+
     def _run_loop(self) -> None:
         """1초 간격으로 스케줄을 확인하는 루프."""
         while self._running:
-            with self._lock:
-                self._scheduler.run_pending()
+            try:
+                with self._lock:
+                    self._scheduler.run_pending()
+            except Exception:
+                logger.exception("스케줄러 run_pending 중 오류 발생")
             time.sleep(1)
 
     def get_next_run_info(self) -> str:
