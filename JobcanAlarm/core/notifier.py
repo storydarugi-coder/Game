@@ -2,6 +2,14 @@
 
 import sys
 import subprocess
+import webbrowser
+
+JOBCAN_URL = "https://id.jobcan.jp/users/sign_in"
+
+
+def open_jobcan():
+    """Jobcan 로그인 페이지를 브라우저에서 연다."""
+    webbrowser.open(JOBCAN_URL)
 
 
 def send_notification(title: str, message: str) -> None:
@@ -19,6 +27,7 @@ def send_notification(title: str, message: str) -> None:
             duration="long",
         )
         toast.set_audio(audio.Default, loop=False)
+        toast.add_actions(label="Jobcan 열기", launch=JOBCAN_URL)
         toast.show()
     except ImportError:
         _fallback_notification(title, message)

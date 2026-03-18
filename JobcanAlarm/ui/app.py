@@ -2,6 +2,7 @@
 
 import customtkinter as ctk
 
+from core.notifier import open_jobcan
 from core.settings import load_settings, save_settings
 from core.scheduler import AlarmScheduler
 from ui.widgets import AlarmRow
@@ -80,6 +81,16 @@ class JobcanAlarmApp(ctk.CTk):
             hover_color="gray50",
         )
         self.test_btn.pack(side="left", padx=5)
+
+        self.jobcan_btn = ctk.CTkButton(
+            bottom,
+            text="Jobcan 열기",
+            command=open_jobcan,
+            width=120,
+            fg_color="#FF6B35",
+            hover_color="#E55A2B",
+        )
+        self.jobcan_btn.pack(side="left", padx=5)
 
         self.add_btn = ctk.CTkButton(
             bottom,
